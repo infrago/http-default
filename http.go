@@ -24,7 +24,8 @@ type (
 		mutex   sync.RWMutex
 		actives int64
 
-		config http.Config
+		// config http.Config
+		instance *http.Instance
 
 		server *nethttp.Server
 		router *mux.Router
@@ -46,9 +47,9 @@ type (
 )
 
 // 连接
-func (driver *defaultDriver) Connect(config http.Config) (http.Connect, error) {
+func (driver *defaultDriver) Connect(inst *http.Instance) (http.Connect, error) {
 	return &defaultConnect{
-		config: config, routes: map[string]*mux.Route{},
+		instance: inst, routes: map[string]*mux.Route{},
 	}, nil
 }
 
@@ -56,7 +57,7 @@ func (driver *defaultDriver) Connect(config http.Config) (http.Connect, error) {
 func (this *defaultConnect) Open() error {
 	this.router = mux.NewRouter()
 	this.server = &nethttp.Server{
-		Addr:         fmt.Sprintf("%s:%d", this.config.Host, this.config.Port),
+		Addr:         fmt.Sprintf("%s:%d", this.instance.Config.Host, this.instance.Config.Port),
 		WriteTimeout: time.Second * 15,
 		ReadTimeout:  time.Second * 15,
 		IdleTimeout:  time.Second * 60,
