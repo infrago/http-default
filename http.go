@@ -30,8 +30,6 @@ type (
 		server *nethttp.Server
 		router *mux.Router
 
-		delegate http.Delegate
-
 		routes map[string]*mux.Route
 	}
 
@@ -64,6 +62,10 @@ func (this *defaultConnect) Open() error {
 		Handler:      this.router,
 	}
 
+	//先注册一个接入全部请求的
+	this.router.NotFoundHandler = this
+	this.router.MethodNotAllowedHandler = this
+
 	return nil
 }
 func (this *defaultConnect) Health() (http.Health, error) {
@@ -77,21 +79,6 @@ func (this *defaultConnect) Close() error {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*5)
 	defer cancel()
 	return this.server.Shutdown(ctx)
-}
-
-// 注册回调
-func (this *defaultConnect) Accept(delegate http.Delegate) error {
-	this.mutex.Lock()
-	defer this.mutex.Unlock()
-
-	//保存回调
-	this.delegate = delegate
-
-	//先注册一个接入全部请求的
-	this.router.NotFoundHandler = this
-	this.router.MethodNotAllowedHandler = this
-
-	return nil
 }
 
 // 订阅者，注册事件
@@ -156,7 +143,7 @@ func (this *defaultConnect) ServeHTTP(res nethttp.ResponseWriter, req *nethttp.R
 	}
 
 	// 有请求都发，404也转过去
-	this.delegate.Serve(name, params, res, req)
+	this.instance.Serve(name, params, res, req)
 }
 
 //------------------------- 默认HTTP驱动 end --------------------------
